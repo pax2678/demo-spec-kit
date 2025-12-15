@@ -1,0 +1,464 @@
+openapi: 3.0.3
+info:
+  title: Dashboard API
+  description: Operational metrics dashboard API with role-based access controls
+  version: 1.0.0
+  contact:
+    name: Dashboard API Team
+    
+servers:
+  - url: https://api.dashboard.example.com/v1
+    description: Production API
+  - url: http://localhost:8000/v1
+    description: Development API
+
+security:
+  - BearerAuth: []
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      
+  schemas:
+    User:
+      type: object
+      required: [user_id, username, email, role]
+      properties:
+        user_id:
+          type: string
+          format: uuid
+          description: Unique user identifier
+        username:
+          type: string
+          minLength: 3
+          maxLength: 50
+          pattern: '^[a-zA-Z0-9_]+$'
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum: [admin, viewer, analyst]
+        created_at:
+          type: string
+          format: date-time
+        last_login:
+          type: string
+          format: date-time
+        is_active:
+          type: boolean
+          
+    UserPreferences:
+      type: object
+      required: [user_id, refresh_interval]
+      properties:
+        preference_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        dashboard_layout:
+          type: object
+          description: Widget positions and sizes configuration
+        visible_widgets:
+          type: array
+          items:
+            type: string
+            format: uuid
+        default_filters:
+          type: object
+          description: Default filter settings
+        theme:
+          type: string
+          enum: [light, dark]
+          default: light
+        refresh_interval:
+          type: integer
+          minimum: 5
+          maximum: 15
+          description: Refresh rate in minutes
+        updated_at:
+          type: string
+          format: date-time
+          
+    DashboardWidget:
+      type: object
+      required: [widget_id, widget_type, title, data_source, min_role_required]
+      properties:
+        widget_id:
+          type: string
+          format: uuid
+        widget_type:
+          type: string
+          enum: [chart, graph, counter, table]
+        title:
+          type: string
+          minLength: 1
+          maxLength: 100
+        data_source:
+          type: string
+          description: Metric type identifier
+        config:
+          type: object
+          description: Widget-specific configuration
+        min_role_required:
+          type: string
+          enum: [viewer, analyst, admin]
+        position_x:
+          type: integer
+          minimum: 0
+        position_y:
+          type: integer
+          minimum: 0
+        width:
+          type: integer
+          minimum: 1
+        height:
+          type: integer
+          minimum: 1
+        is_active:
+          type: boolean
+          default: true
+          
+    MetricData:
+      type: object
+      required: [metric_type, metric_name, value, timestamp]
+      properties:
+        metric_id:
+          type: string
+          format: uuid
+        metric_type:
+          type: string
+          enum: [system_performance, user_activity, error_rate]
+        metric_name:
+          type: string
+        value:
+          type: number
+          format: decimal
+          minimum: 0
+        timestamp:
+          type: string
+          format: date-time
+        source_system:
+          type: string
+        metadata:
+          type: object
+        unit:
+          type: string
+          description: Measurement unit
+          
+    FilterConfiguration:
+      type: object
+      required: [filter_name, date_range_start, date_range_end]
+      properties:
+        filter_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        filter_name:
+          type: string
+          maxLength: 100
+        date_range_start:
+          type: string
+          format: date-time
+        date_range_end:
+          type: string
+          format: date-time
+        metric_categories:
+          type: array
+          items:
+            type: string
+            enum: [system_performance, user_activity, error_rate]
+        source_systems:
+          type: array
+          items:
+            type: string
+        is_active:
+          type: boolean
+          default: false
+        created_at:
+          type: string
+          format: date-time
+          
+    ErrorResponse:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+
+paths:
+  /auth/login:
+    post:
+      tags: [Authentication]
+      summary: Authenticate user and get JWT token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+                  format: password
+      responses:
+        '200':
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                    description: JWT access token
+                  refresh_token:
+                    type: string
+                    description: JWT refresh token
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: Authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+                
+  /auth/refresh:
+    post:
+      tags: [Authentication]
+      summary: Refresh JWT token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh_token]
+              properties:
+                refresh_token:
+                  type: string
+      responses:
+        '200':
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                  refresh_token:
+                    type: string
+                    
+  /dashboard/widgets:
+    get:
+      tags: [Dashboard]
+      summary: Get available widgets for current user role
+      responses:
+        '200':
+          description: List of available widgets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DashboardWidget'
+        '403':
+          description: Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+                
+  /dashboard/metrics:
+    get:
+      tags: [Dashboard]
+      summary: Get metrics data for dashboard
+      parameters:
+        - name: metric_type
+          in: query
+          schema:
+            type: string
+            enum: [system_performance, user_activity, error_rate]
+        - name: start_time
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: end_time
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: granularity
+          in: query
+          schema:
+            type: string
+            enum: [5min, 1hour, 1day]
+            default: 5min
+      responses:
+        '200':
+          description: Metrics data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MetricData'
+        '400':
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+                
+  /dashboard/export:
+    post:
+      tags: [Dashboard]
+      summary: Export dashboard data
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [format, metrics, date_range]
+              properties:
+                format:
+                  type: string
+                  enum: [excel, csv]
+                metrics:
+                  type: array
+                  items:
+                    type: string
+                date_range:
+                  type: object
+                  required: [start_time, end_time]
+                  properties:
+                    start_time:
+                      type: string
+                      format: date-time
+                    end_time:
+                      type: string
+                      format: date-time
+                filters:
+                  $ref: '#/components/schemas/FilterConfiguration'
+      responses:
+        '200':
+          description: Export file generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  download_url:
+                    type: string
+                    format: uri
+                  expires_at:
+                    type: string
+                    format: date-time
+                    
+  /users/preferences:
+    get:
+      tags: [User Management]
+      summary: Get current user preferences
+      responses:
+        '200':
+          description: User preferences
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPreferences'
+                
+    put:
+      tags: [User Management]
+      summary: Update user preferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserPreferences'
+      responses:
+        '200':
+          description: Preferences updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPreferences'
+        '400':
+          description: Invalid preferences data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+                
+  /users/filters:
+    get:
+      tags: [User Management]
+      summary: Get user's saved filters
+      responses:
+        '200':
+          description: List of user filters
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FilterConfiguration'
+                  
+    post:
+      tags: [User Management]
+      summary: Save new filter configuration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FilterConfiguration'
+      responses:
+        '201':
+          description: Filter saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FilterConfiguration'
+                
+  /users/filters/{filter_id}:
+    delete:
+      tags: [User Management]
+      summary: Delete saved filter
+      parameters:
+        - name: filter_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Filter deleted
+        '404':
+          description: Filter not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
