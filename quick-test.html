@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Quick Test</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .header { background: #1976d2; color: white; padding: 16px; margin-bottom: 20px; }
+        .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+        .widget { background: white; border-radius: 8px; padding: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .widget h3 { color: #333; margin-bottom: 12px; }
+        .metric-value { font-size: 2rem; color: #1976d2; font-weight: bold; }
+        .metric-unit { font-size: 0.9rem; color: #666; }
+        
+        /* Responsive breakpoints - matches your implementation */
+        @media (max-width: 320px) {
+            .container { padding: 8px; }
+            .grid { grid-template-columns: 1fr; gap: 8px; }
+            .widget { padding: 12px; }
+            .metric-value { font-size: 1.5rem; }
+        }
+        
+        @media (max-width: 480px) {
+            .grid { grid-template-columns: 1fr; }
+        }
+        
+        @media (max-width: 768px) {
+            .header { padding: 12px; }
+            .metric-value { font-size: 1.8rem; }
+        }
+        
+        @media (min-width: 3840px) {
+            .container { max-width: 2400px; }
+            .widget { transform: scale(1.1); }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎛️ Dashboard Quick Test</h1>
+        <p>Testing responsive design from 320px to 4K</p>
+    </div>
+    
+    <div class="container">
+        <div class="grid">
+            <div class="widget">
+                <h3>System Performance</h3>
+                <div class="metric-value">87<span class="metric-unit">%</span></div>
+                <p>CPU Usage</p>
+            </div>
+            
+            <div class="widget">
+                <h3>Active Users</h3>
+                <div class="metric-value">1,234</div>
+                <p>Currently Online</p>
+            </div>
+            
+            <div class="widget">
+                <h3>Error Rate</h3>
+                <div class="metric-value">2.3<span class="metric-unit">%</span></div>
+                <p>Last 24 Hours</p>
+            </div>
+            
+            <div class="widget">
+                <h3>Response Time</h3>
+                <div class="metric-value">245<span class="metric-unit">ms</span></div>
+                <p>Average</p>
+            </div>
+        </div>
+        
+        <div style="margin-top: 40px; padding: 20px; background: #f5f5f5; border-radius: 8px;">
+            <h3>✅ Responsive Test Instructions:</h3>
+            <ol style="margin-left: 20px; line-height: 1.6;">
+                <li><strong>Desktop (1200px+):</strong> Should show multiple columns</li>
+                <li><strong>Tablet (768-1200px):</strong> Should show 2-3 columns</li>
+                <li><strong>Mobile (480-768px):</strong> Should show 1-2 columns</li>
+                <li><strong>Small Mobile (320-480px):</strong> Should show 1 column, compact</li>
+            </ol>
+            <p style="margin-top: 16px;"><strong>Test:</strong> Resize your browser window to see responsive behavior!</p>
+        </div>
+    </div>
+    
+    <script>
+        // Show current screen size
+        function updateScreenInfo() {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            document.title = `Dashboard Test (${width}x${height})`;
+        }
+        window.addEventListener('resize', updateScreenInfo);
+        updateScreenInfo();
+    </script>
+</body>
+</html>
