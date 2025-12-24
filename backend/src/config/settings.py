@@ -1,5 +1,6 @@
-from pydantic import BaseSettings, validator
-from typing import Optional
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import field_validator, model_validator, Field
+from typing import Optional, Union, List, Any
 import os
 from functools import lru_cache
 
@@ -28,7 +29,7 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     
     # CORS
-    BACKEND_CORS_ORIGINS: list = ["http://localhost:3000", "http://localhost:8080"]
+    BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:8080"]
     
     # Logging
     LOG_LEVEL: str = "INFO"
@@ -54,39 +55,46 @@ class Settings(BaseSettings):
     ENABLE_METRICS: bool = True
     METRICS_PATH: str = "/metrics"
     
-    @validator("BACKEND_CORS_ORIGINS", pre=True)
-    def assemble_cors_origins(cls, v):
+    @field_validator("BACKEND_CORS_ORIGINS", mode="before")
+    @classmethod
+    def assemble_cors_origins(cls, v: Any) -> List[str]:
         """Parse CORS origins from string or list."""
-        if isinstance(v, str) and not v.startswith("["):
+        if isinstance(v, str):
+            # Handle comma-separated string from .env file
             return [i.strip() for i in v.split(",")]
-        elif isinstance(v, (list, str)):
+        elif isinstance(v, list):
             return v
-        raise ValueError(v)
-    
-    @validator("DATABASE_URL")
+        raise ValueError(f"Invalid CORS origins format: {v}")
+
+    @field_validator("DATABASE_URL")
+    @classmethod
     def validate_database_url(cls, v):
         """Validate database URL format."""
         if not v.startswith(("postgresql://", "postgresql+psycopg2://")):
             raise ValueError("DATABASE_URL must be a PostgreSQL connection string")
         return v
-    
-    @validator("DEBUG", pre=True)
+
+    @field_validator("DEBUG", mode="before")
+    @classmethod
     def parse_debug(cls, v):
         """Parse DEBUG from string."""
         if isinstance(v, str):
             return v.lower() in ("true", "1", "yes", "on")
         return v
-    
-    @validator("SECRET_KEY")
+
+    @field_validator("SECRET_KEY")
+    @classmethod
     def validate_secret_key(cls, v):
         """Validate secret key strength."""
         if len(v) < 32:
             raise ValueError("SECRET_KEY must be at least 32 characters long")
         return v
-    
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        case_sensitive=True,
+        env_parse_none_str="None"
+    )
 
 
 class DevelopmentSettings(Settings):

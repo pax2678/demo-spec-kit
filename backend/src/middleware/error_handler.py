@@ -1,6 +1,6 @@
 from fastapi import Request, HTTPException, status
 from fastapi.responses import JSONResponse
-from fastapi.exceptions import ValidationError
+from fastapi.exceptions import RequestValidationError
 from sqlalchemy.exc import SQLAlchemyError
 from pydantic import ValidationError as PydanticValidationError
 import logging
@@ -31,12 +31,12 @@ class ErrorHandler:
     
     @staticmethod
     async def validation_exception_handler(
-        request: Request, 
-        exc: Union[ValidationError, PydanticValidationError]
+        request: Request,
+        exc: Union[RequestValidationError, PydanticValidationError]
     ) -> JSONResponse:
         """Handle request validation errors."""
         logger.warning(f"Validation error: {exc} - {request.url}")
-        
+
         errors = []
         if hasattr(exc, 'errors'):
             for error in exc.errors():
@@ -47,7 +47,7 @@ class ErrorHandler:
                 })
         else:
             errors.append({"message": str(exc)})
-        
+
         return JSONResponse(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             content={
@@ -122,18 +122,18 @@ class ErrorHandler:
 def setup_error_handlers(app):
     """Setup error handlers for FastAPI application."""
     error_handler = ErrorHandler()
-    
+
     # HTTP exceptions
     app.add_exception_handler(HTTPException, error_handler.http_exception_handler)
-    
+
     # Validation errors
-    app.add_exception_handler(ValidationError, error_handler.validation_exception_handler)
+    app.add_exception_handler(RequestValidationError, error_handler.validation_exception_handler)
     app.add_exception_handler(PydanticValidationError, error_handler.validation_exception_handler)
-    
+
     # Database errors
     app.add_exception_handler(SQLAlchemyError, error_handler.sqlalchemy_exception_handler)
-    
+
     # General exceptions (catch-all)
     app.add_exception_handler(Exception, error_handler.general_exception_handler)
-    
+
     logger.info("Error handlers configured successfully")

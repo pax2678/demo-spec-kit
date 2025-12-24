@@ -1,10 +1,19 @@
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, Generator
 from fastapi import HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
 from passlib.context import CryptContext
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, Session
 import os
+
+# Database configuration
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://dashboard_user:dashboard_password@localhost:5432/dashboard_db")
+
+# Create database engine
+engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # Security configuration
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-here")
@@ -126,6 +135,16 @@ class JWTMiddleware:
             return user_data
         
         return role_checker
+
+
+# Database dependency
+def get_database() -> Generator[Session, None, None]:
+    """Get database session."""
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 
 # Global middleware instance

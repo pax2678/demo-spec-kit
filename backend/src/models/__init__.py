@@ -34,5 +34,3 @@ from .user import User  # noqa: F401, E402
 from .user_preferences import UserPreferences  # noqa: F401, E402
 from .dashboard_widget import DashboardWidget  # noqa: F401, E402
 from .metric_data import MetricData  # noqa: F401, E402
-from .filter_configuration import FilterConfiguration  # noqa: F401, E402
-from .dashboard_session import DashboardSession  # noqa: F401, E402

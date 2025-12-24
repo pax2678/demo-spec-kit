@@ -60,8 +60,8 @@ class MetricData(Base):
         nullable=True,
         comment="Origin system that generated the metric"
     )
-    
-    metadata = Column(
+
+    metric_metadata = Column(
         JSON,
         nullable=True,
         comment="Additional context data for the metric"
@@ -105,7 +105,7 @@ class MetricData(Base):
             "unit": self.unit,
             "timestamp": self.timestamp.isoformat() if self.timestamp else None,
             "source_system": self.source_system,
-            "metadata": self.metadata,
+            "metadata": self.metric_metadata,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
     
@@ -212,7 +212,7 @@ class MetricData(Base):
                     unit=metric["unit"],
                     timestamp=timestamp,
                     source_system=metric["source_system"],
-                    metadata={"generated": True, "sample_data": True}
+                    metric_metadata={"generated": True, "sample_data": True}
                 ))
         
         return sample_data

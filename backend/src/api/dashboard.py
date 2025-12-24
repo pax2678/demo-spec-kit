@@ -167,7 +167,7 @@ async def get_latest_metrics(
             unit=metric.unit,
             timestamp=metric.timestamp.isoformat(),
             source_system=metric.source_system,
-            metadata=metric.metadata
+            metadata=metric.metric_metadata
         )
         for metric in metrics
     ]
@@ -200,8 +200,8 @@ async def get_metric_history(
 async def get_aggregated_metrics(
     metric_name: str,
     hours: int = Query(24, ge=1, le=168, description="Time range in hours"),
-    interval: str = Query("1h", regex="^(5m|15m|1h|1d)$", description="Aggregation interval"),
-    function: str = Query("avg", regex="^(avg|sum|min|max|count)$", description="Aggregation function"),
+    interval: str = Query("1h", pattern="^(5m|15m|1h|1d)$", description="Aggregation interval"),
+    function: str = Query("avg", pattern="^(avg|sum|min|max|count)$", description="Aggregation function"),
     current_user: User = Depends(get_current_active_user),
     metrics_service: MetricsService = Depends(get_metrics_service)
 ):
@@ -276,7 +276,7 @@ async def get_metrics_by_type(
             unit=metric.unit,
             timestamp=metric.timestamp.isoformat(),
             source_system=metric.source_system,
-            metadata=metric.metadata
+            metadata=metric.metric_metadata
         )
         for metric in metrics
     ]
