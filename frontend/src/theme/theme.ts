@@ -200,20 +200,6 @@ const componentOverrides: ThemeOptions['components'] = {
       },
     },
   },
-  MuiDataGrid: {
-    styleOverrides: {
-      root: {
-        border: 'none',
-        '& .MuiDataGrid-cell': {
-          borderColor: '#e0e0e0',
-        },
-        '& .MuiDataGrid-columnHeaders': {
-          backgroundColor: '#fafafa',
-          borderColor: '#e0e0e0',
-        },
-      },
-    },
-  },
 };
 
 // Create the main theme

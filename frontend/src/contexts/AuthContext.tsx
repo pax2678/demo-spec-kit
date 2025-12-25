@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import axios from 'axios';
+import authService from '../services/authService';
 
 // Types
 interface User {
@@ -43,95 +43,38 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Check if user is authenticated
   const isAuthenticated = !!user && !!token;
 
-  // Setup axios interceptors
-  useEffect(() => {
-    // Request interceptor to add auth header
-    const requestInterceptor = axios.interceptors.request.use(
-      (config) => {
-        const currentToken = localStorage.getItem('access_token');
-        if (currentToken && config.headers) {
-          config.headers.Authorization = `Bearer ${currentToken}`;
-        }
-        return config;
-      },
-      (error) => Promise.reject(error)
-    );
+  // authService already handles interceptors, no need to duplicate
 
-    // Response interceptor to handle token expiration
-    const responseInterceptor = axios.interceptors.response.use(
-      (response) => response,
-      async (error) => {
-        if (error.response?.status === 401 && token) {
-          // Token expired, try to refresh
-          const refreshSuccess = await refreshToken();
-          if (refreshSuccess) {
-            // Retry original request with new token
-            const newToken = localStorage.getItem('access_token');
-            if (newToken && error.config.headers) {
-              error.config.headers.Authorization = `Bearer ${newToken}`;
-              return axios.request(error.config);
-            }
-          } else {
-            // Refresh failed, logout user
-            logout();
-          }
-        }
-        return Promise.reject(error);
-      }
-    );
-
-    return () => {
-      axios.interceptors.request.eject(requestInterceptor);
-      axios.interceptors.response.eject(responseInterceptor);
-    };
-  }, [token]);
-
-  // Initialize auth state from localStorage
+  // Initialize auth state from authService
   useEffect(() => {
     const initializeAuth = async () => {
       setIsLoading(true);
-      
-      const storedToken = localStorage.getItem('access_token');
-      const storedUser = localStorage.getItem('user');
-      
-      if (storedToken && storedUser) {
-        try {
-          const userData = JSON.parse(storedUser);
-          setToken(storedToken);
-          setUser(userData);
-        } catch (error) {
-          console.error('Error parsing stored user data:', error);
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('refresh_token');
-          localStorage.removeItem('user');
+
+      if (authService.isAuthenticated()) {
+        const userData = authService.getUser();
+        const accessToken = authService.getAccessToken();
+
+        if (userData && accessToken) {
+          setUser(userData as User);
+          setToken(accessToken);
         }
       }
-      
+
       setIsLoading(false);
     };
 
     initializeAuth();
   }, []);
 
-  // Login function
+  // Login function using authService
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
       setIsLoading(true);
-      
-      const response = await axios.post('/api/auth/login', {
-        username,
-        password,
-      });
 
-      const { access_token, refresh_token, user: userData } = response.data;
+      const userData = await authService.login({ username, password });
 
-      // Store tokens and user data
-      localStorage.setItem('access_token', access_token);
-      localStorage.setItem('refresh_token', refresh_token);
-      localStorage.setItem('user', JSON.stringify(userData));
-
-      setToken(access_token);
-      setUser(userData);
+      setToken(authService.getAccessToken());
+      setUser(userData as User);
 
       return true;
     } catch (error) {
@@ -142,38 +85,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Logout function
+  // Logout function using authService
   const logout = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('user');
+    authService.logout();
     setToken(null);
     setUser(null);
   };
 
-  // Refresh token function
+  // Refresh token function using authService
   const refreshToken = async (): Promise<boolean> => {
     try {
-      const storedRefreshToken = localStorage.getItem('refresh_token');
-      
-      if (!storedRefreshToken) {
-        return false;
+      await authService.refreshAccessToken();
+
+      const userData = authService.getUser();
+      const accessToken = authService.getAccessToken();
+
+      if (userData && accessToken) {
+        setUser(userData as User);
+        setToken(accessToken);
+        return true;
       }
 
-      const response = await axios.post('/api/auth/refresh', {
-        refresh_token: storedRefreshToken,
-      });
-
-      const { access_token, refresh_token: newRefreshToken, user: userData } = response.data;
-
-      localStorage.setItem('access_token', access_token);
-      localStorage.setItem('refresh_token', newRefreshToken);
-      localStorage.setItem('user', JSON.stringify(userData));
-
-      setToken(access_token);
-      setUser(userData);
-
-      return true;
+      return false;
     } catch (error) {
       console.error('Token refresh error:', error);
       return false;

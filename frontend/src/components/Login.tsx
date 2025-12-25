@@ -15,7 +15,8 @@ import {
 } from '@mui/material';
 import { LockOutlined as LockIcon } from '@mui/icons-material';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
-import authService, { LoginCredentials } from '../services/authService';
+import { useAuth } from '../contexts/AuthContext';
+import { LoginCredentials } from '../services/authService';
 
 interface LoginProps {
   onLoginSuccess?: () => void;
@@ -23,13 +24,14 @@ interface LoginProps {
 
 const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   const navigate = useNavigate();
-  
+  const { login } = useAuth();
+
   // Form state
   const [credentials, setCredentials] = useState<LoginCredentials>({
     username: '',
     password: '',
   });
-  
+
   // UI state
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,21 +62,25 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     setError(null);
 
     try {
-      await authService.login(credentials);
-      
-      // Call success callback if provided
-      if (onLoginSuccess) {
-        onLoginSuccess();
+      const success = await login(credentials.username, credentials.password);
+
+      if (success) {
+        // Call success callback if provided
+        if (onLoginSuccess) {
+          onLoginSuccess();
+        }
+
+        // Navigate to dashboard
+        navigate('/dashboard');
+      } else {
+        setError('Login failed. Please check your credentials and try again.');
       }
-      
-      // Navigate to dashboard
-      navigate('/dashboard');
-      
+
     } catch (error) {
       console.error('Login failed:', error);
       setError(
-        error instanceof Error 
-          ? error.message 
+        error instanceof Error
+          ? error.message
           : 'Login failed. Please check your credentials and try again.'
       );
     } finally {
@@ -96,14 +102,18 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     setError(null);
 
     try {
-      await authService.login(demoCredentials[demoUser]);
-      
-      if (onLoginSuccess) {
-        onLoginSuccess();
+      const success = await login(demoCredentials[demoUser].username, demoCredentials[demoUser].password);
+
+      if (success) {
+        if (onLoginSuccess) {
+          onLoginSuccess();
+        }
+
+        navigate('/dashboard');
+      } else {
+        setError('Demo login failed. The demo account might not be set up.');
       }
-      
-      navigate('/dashboard');
-      
+
     } catch (error) {
       console.error('Demo login failed:', error);
       setError('Demo login failed. The demo account might not be set up.');

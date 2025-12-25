@@ -310,7 +310,7 @@ const MetricsGrid: React.FC<MetricsGridProps> = ({
       </ResponsiveGridLayout>
 
       {/* CSS for react-grid-layout */}
-      <style jsx global>{`
+      <style>{`
         .react-grid-layout {
           position: relative;
         }

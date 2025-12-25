@@ -225,8 +225,8 @@ const MetricWidget: React.FC<MetricWidgetProps> = ({
 
   // Get trend icon
   const getTrendIcon = () => {
-    if (!summary) return null;
-    
+    if (!summary) return undefined;
+
     switch (summary.trend) {
       case 'increasing':
         return <TrendingUpIcon color="success" fontSize="small" />;

@@ -102,21 +102,9 @@ class User(Base):
     
     # Relationships
     preferences = relationship(
-        "UserPreferences", 
-        back_populates="user", 
+        "UserPreferences",
+        back_populates="user",
         uselist=False,
-        cascade="all, delete-orphan"
-    )
-    
-    sessions = relationship(
-        "DashboardSession",
-        back_populates="user",
-        cascade="all, delete-orphan"
-    )
-    
-    filter_configurations = relationship(
-        "FilterConfiguration",
-        back_populates="user",
         cascade="all, delete-orphan"
     )
     
